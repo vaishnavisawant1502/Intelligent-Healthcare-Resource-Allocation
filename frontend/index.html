@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelligent Healthcare Resource Allocation Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Header & Navigation -->
+    <header>
+        <div class="header-top">
+            <div class="brand">
+                <div class="brand-icon">🏥</div>
+                <div class="brand-title">
+                    <h1>Intelligent Healthcare Resource Allocation Simulator</h1>
+                    <p>Educational Simulation &bull; Object-Oriented Design &bull; MySQL Transactions</p>
+                </div>
+            </div>
+            <div class="system-status">
+                <div id="status-dot" class="status-dot"></div>
+                <span id="status-text">Checking system...</span>
+            </div>
+        </div>
+
+        <nav class="dashboard-tabs">
+            <button class="tab-btn active" data-tab="view-receptionist">
+                📋 Receptionist Dashboard <span class="badge-count" id="receptionist-count">0</span>
+            </button>
+            <button class="tab-btn" data-tab="view-doctor">
+                🩺 Doctor Dashboard <span class="badge-count" id="doctor-awaiting-count">0</span>
+            </button>
+            <button class="tab-btn" data-tab="view-admin">
+                ⚙️ Administrator Dashboard <span class="badge-count" id="admin-waiting-count">0</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Views -->
+    <main>
+
+        <!-- 1. RECEPTIONIST DASHBOARD -->
+        <section id="view-receptionist" class="dashboard-view active">
+            <div class="grid-two-col">
+                <!-- Patient Registration Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📝 Patient Registration</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="patient-reg-form">
+                            <div class="form-group">
+                                <label for="reg-name">Full Name *</label>
+                                <input type="text" id="reg-name" required placeholder="e.g. John Doe">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="reg-age">Age (Years) *</label>
+                                    <input type="number" id="reg-age" min="1" max="120" required placeholder="e.g. 45">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reg-gender">Gender *</label>
+                                    <select id="reg-gender" required>
+                                        <option value="" disabled selected>Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reg-contact">Contact Number *</label>
+                                <input type="tel" id="reg-contact" required placeholder="e.g. +1 555-0199">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="reg-reason">Reason for Visit / Symptoms *</label>
+                                <textarea id="reg-reason" required placeholder="Describe symptoms or reason for visit..."></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block">
+                                Register Patient
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Patient Directory Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📋 Patient Directory & Status</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="loadReceptionistData()">🔄 Refresh</button>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Patient Name</th>
+                                        <th>Contact</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patients-table-body">
+                                    <tr><td colspan="6" class="empty-state">Loading registered patients...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 2. DOCTOR DASHBOARD -->
+        <section id="view-doctor" class="dashboard-view">
+            <!-- Educational Disclaimer -->
+            <div class="disclaimer-banner">
+                <span>ℹ️</span>
+                <span>
+                    <strong>Educational Simulation Notice:</strong> Urgency ratings (Critical, High, Medium, Low) are used solely for queue prioritization in this software simulation and do NOT constitute clinically validated triage.
+                </span>
+            </div>
+
+            <div class="grid-two-col">
+                <!-- Awaiting Patients Queue -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>👥 Patients Awaiting Assessment</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="loadAwaitingPatients()">🔄 Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="awaiting-patients-list" class="patient-select-list">
+                            <div class="empty-state">Loading awaiting patients...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Examination & Resource Requisition Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2 id="selected-patient-header">No Patient Selected</h2>
+                            <p id="selected-patient-sub" style="font-size:0.8rem;color:var(--text-muted);">
+                                Select an awaiting patient from the list on the left to begin examination
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Instant Feedback Banner -->
+                        <div id="doctor-feedback-banner" class="feedback-banner"></div>
+
+                        <form id="doctor-assessment-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="doc-name">Attending Doctor</label>
+                                    <input type="text" id="doc-name" value="Dr. Sarah Jenkins" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="doc-urgency">Urgency Level (Queue Priority) *</label>
+                                    <select id="doc-urgency" required>
+                                        <option value="Low">Low Priority</option>
+                                        <option value="Medium" selected>Medium Priority</option>
+                                        <option value="High">High Priority</option>
+                                        <option value="Critical">Critical Priority</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="doc-findings">Clinical Examination Findings & Notes *</label>
+                                <textarea id="doc-findings" required placeholder="Enter examination observations, vital indicators, diagnosis notes..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Required Hospital Resources (All-or-Nothing Allocation) *</label>
+                                <p class="help-text">Specify required units. All requested resources must be available simultaneously for allocation to succeed.</p>
+                                <div id="doctor-resource-pickers" class="resource-picker-grid">
+                                    <!-- Dynamic Resource Pickers populated by JS -->
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block" style="margin-top:1.25rem;">
+                                Submit Assessment & Allocate Resources
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- 3. ADMINISTRATOR DASHBOARD -->
+        <section id="view-admin" class="dashboard-view">
+            <div class="grid-admin">
+                <!-- Resource Inventory Cards -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📦 Hospital Resource Inventory & Capacity</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="loadAdminData()">🔄 Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="admin-inventory-grid" class="inventory-grid">
+                            <div class="empty-state">Loading inventory...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waiting Queue & Reprocessing -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h2>⏳ Priority Waiting Queue (Resource Shortage)</h2>
+                            <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem;">
+                                Sorted by priority: Critical &gt; High &gt; Medium &gt; Low, with FIFO arrival time tie-breaker.
+                            </p>
+                        </div>
+                        <button id="btn-process-waiting" class="btn btn-success" onclick="processWaitingQueue()">
+                            ⚡ Process Waiting Requests
+                        </button>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Queue #</th>
+                                        <th>Priority</th>
+                                        <th>Patient</th>
+                                        <th>Requested Resources</th>
+                                        <th>Waitlisted Since</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-waiting-table-body">
+                                    <tr><td colspan="6" class="empty-state">Loading waiting requests...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Allocation History & Release Operations -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📋 Resource Allocation Records & Release Management</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="loadAdminAllocations()">🔄 Refresh</button>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Alloc ID</th>
+                                        <th>Patient</th>
+                                        <th>Resource</th>
+                                        <th>Quantity</th>
+                                        <th>Status</th>
+                                        <th>Allocated At</th>
+                                        <th>Release Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-allocations-table-body">
+                                    <tr><td colspan="7" class="empty-state">Loading allocations...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Patient Details -->
+    <div id="patient-details-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Patient Case Details</h3>
+                <button class="modal-close" onclick="closeModal('patient-details-modal')">&times;</button>
+            </div>
+            <div id="patient-details-content" class="modal-body">
+                <!-- Injected via JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('patient-details-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Update Inventory Capacity -->
+    <div id="capacity-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Adjust Resource Capacity</h3>
+                <button class="modal-close" onclick="closeModal('capacity-modal')">&times;</button>
+            </div>
+            <form id="update-capacity-form">
+                <div class="modal-body">
+                    <input type="hidden" id="cap-resource-id">
+                    <div class="form-group">
+                        <label>Resource Name:</label>
+                        <strong id="cap-resource-name" style="font-size:1rem;color:var(--primary);"></strong>
+                    </div>
+                    <div class="form-group" style="background:#f8fafc;padding:0.75rem;border-radius:var(--radius-sm);border:1px solid var(--border);">
+                        <div style="font-size:0.85rem;color:var(--text-muted);">
+                            Active Allocated Units: <strong id="cap-allocated-info" style="color:var(--status-high);">0</strong>
+                        </div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.25rem;">
+                            Rule: Total capacity cannot be reduced below the active allocated units.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="cap-total-qty">New Total Capacity *</label>
+                        <input type="number" id="cap-total-qty" required min="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeModal('capacity-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Save Capacity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
